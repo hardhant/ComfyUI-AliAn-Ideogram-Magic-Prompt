@@ -41,7 +41,7 @@ classifiers = [
 PublisherId = "hardhant"
 DisplayName = "ComfyUI-AliAn-Ideogram-Magic-Prompt"
 Icon = ""
-Includes = ["nodes.py", "__init__.py", "README.md", "LICENSE", "requirements.txt"]
+Includes = ["nodes.py", "__init__.py", "README.md", "LICENSE"]
 BannerUrl = ""
 
 # Tell ComfyUI Manager the minimum ComfyUI version we tested against.
