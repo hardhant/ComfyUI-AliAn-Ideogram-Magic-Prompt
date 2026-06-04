@@ -39,6 +39,17 @@ Typical round-trip: 2-5 seconds.
 
 ## Install
 
+### Option A — ComfyUI Manager (recommended)
+
+1. Open ComfyUI Manager.
+2. Search for **"Ideogram Magic Prompt"** (or the repo name
+   `ComfyUI-AliAn-Ideogram-Magic-Prompt`).
+3. Click **Install**. The Manager reads `pyproject.toml` for the
+   version, PublisherId, and DisplayName automatically.
+4. Restart ComfyUI.
+
+### Option B — Manual install
+
 1. Drop the entire `comfyui_ideogram_magic_prompt/` folder into
    `<your-comfyui>/custom_nodes/`.
 2. Restart ComfyUI.

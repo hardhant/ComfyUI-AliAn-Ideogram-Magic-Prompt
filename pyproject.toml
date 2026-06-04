@@ -1,0 +1,49 @@
+[project]
+name = "comfyui-alian-ideogram-magic-prompt"
+version = "0.1.0"
+description = "ComfyUI custom node: rewrites a plain prompt into Ideogram 4's native structured JSON caption via the hosted magic-prompt API."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+keywords = [
+    "comfyui",
+    "comfyui-nodes",
+    "comfyui-custom-nodes",
+    "ideogram",
+    "ideogram-4",
+    "text-to-image",
+    "prompt-engineering",
+    "magic-prompt",
+    "llm",
+]
+authors = [
+    { name = "Alexandr Radowskiy", email = "hardhant@users.noreply.github.com" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Graphics :: 3D Rendering",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+# ComfyUI Manager auto-detection. The Manager scans this section to
+# fill the "Install via Manager" UI with metadata, version, and a
+# human-readable name. See https://github.com/ltdrdata/ComfyUI-Manager
+# for the full schema.
+[tool.comfy]
+PublisherId = "hardhant"
+DisplayName = "ComfyUI-AliAn-Ideogram-Magic-Prompt"
+Icon = ""
+Includes = ["nodes.py", "__init__.py", "README.md", "LICENSE", "requirements.txt"]
+BannerUrl = ""
+
+# Tell ComfyUI Manager the minimum ComfyUI version we tested against.
+[tool.comfy.minimum_comfy_version]
+version = "0.3.0"
