@@ -1,6 +1,6 @@
 [project]
 name = "comfyui-alian-ideogram-magic-prompt"
-version = "0.1.0"
+version = "0.2.0"
 description = "ComfyUI custom node: rewrites a plain prompt into Ideogram 4's native structured JSON caption via the hosted magic-prompt API."
 readme = "README.md"
 requires-python = ">=3.10"

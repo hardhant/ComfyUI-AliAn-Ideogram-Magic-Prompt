@@ -22,6 +22,12 @@ try:
 except ImportError:  # older ComfyUI / V1 fallback
     from comfy_api.v0_0_2 import ComfyExtension, io, ui  # type: ignore[no-redef]
 
+from negative_prompt import (
+    NEGATIVE_PLAIN,
+    merge_into_json_caption,
+    plain_prompt_with_negatives,
+)
+
 MAGIC_PROMPT_URL = "https://api.ideogram.ai/v1/ideogram-v4/magic-prompt"
 
 # 18 aspect ratios accepted by the Ideogram magic-prompt API
@@ -108,6 +114,16 @@ class IdeogramMagicPrompt(io.ComfyNode):
                     default="1x1",
                     tooltip="Closest aspect ratio for which to lay out the caption.",
                 ),
+                io.Boolean.Input(
+                    "suppress_artifacts",
+                    default=True,
+                    tooltip=(
+                        "Append the negative-prompt snippet (no noise, no blur, "
+                        "no jpeg, no chromatic aberration...) to the caption. "
+                        "Ideogram 4 has no native negative_prompt field; this "
+                        "is the closest equivalent."
+                    ),
+                ),
             ],
             outputs=[
                 io.String.Output(
@@ -118,7 +134,9 @@ class IdeogramMagicPrompt(io.ComfyNode):
         )
 
     @classmethod
-    def execute(cls, prompt: str, api_key: str, aspect_ratio: str) -> io.NodeOutput:
+    def execute(
+        cls, prompt: str, api_key: str, aspect_ratio: str, suppress_artifacts: bool
+    ) -> io.NodeOutput:
         if not prompt or not prompt.strip():
             raise ValueError("Prompt is empty.")
         if not api_key or not api_key.strip():
@@ -131,20 +149,114 @@ class IdeogramMagicPrompt(io.ComfyNode):
         caption_obj = _post_magic_prompt(prompt, aspect_ratio, api_key)
         elapsed = time.time() - t0
 
+        if suppress_artifacts:
+            caption_obj = merge_into_json_caption(caption_obj)
+            log_suffix = " (artifact-suppression snippet merged)"
+        else:
+            log_suffix = ""
+
         caption_str = json.dumps(caption_obj, ensure_ascii=False, separators=(",", ":"))
-        # Wrap the timing metadata as a log we can show in the UI.
-        log = f"magic-prompt expansion: {elapsed:.1f}s, aspect={aspect_ratio}"
+        log = f"magic-prompt expansion: {elapsed:.1f}s, aspect={aspect_ratio}{log_suffix}"
         return io.NodeOutput(
             caption_str,
             ui=ui.PreviewText(log),
         )
 
 
+class IdeogramSuppressArtifacts(io.ComfyNode):
+    """Append the artifact-suppression snippet to any text or JSON caption.
+
+    Useful as a standalone post-processing step if you already have a
+    hand-written or LLM-generated caption and just want to bolt on the
+    noise/blur/jpeg suppression language without re-running the API.
+
+    Set `mode` to:
+      - "auto"       -- parse the input as JSON if it looks like a JSON
+                         object/array; else treat as plain text.
+      - "json"       -- force JSON merge (style_description / HLD postfix).
+      - "plain text" -- append the plain-prompt snippet.
+    """
+
+    @classmethod
+    def define_schema(cls) -> io.Schema:
+        return io.Schema(
+            node_id="IdeogramSuppressArtifacts",
+            display_name="Ideogram Suppress Artifacts",
+            category="Ideogram",
+            description=(
+                "Appends a positive-constraint snippet ('no noise, no grain, "
+                "no blur, no jpeg, no chromatic aberration...') to either a "
+                "JSON caption (merged into style_description) or a plain-text "
+                "prompt. Closest equivalent to a negative prompt in Ideogram 4."
+            ),
+            inputs=[
+                io.String.Input(
+                    "caption",
+                    multiline=True,
+                    tooltip="Either a stringified JSON caption or a plain prompt.",
+                ),
+                io.Combo.Input(
+                    "mode",
+                    options=["auto", "json", "plain text"],
+                    default="auto",
+                    tooltip=(
+                        "auto: parse as JSON if input looks like JSON object/array. "
+                        "json: force JSON merge. "
+                        "plain text: append the snippet to the input as-is."
+                    ),
+                ),
+            ],
+            outputs=[
+                io.String.Output(
+                    "caption",
+                    tooltip="Caption with the artifact-suppression snippet applied.",
+                ),
+            ],
+        )
+
+    @classmethod
+    def execute(cls, caption: str, mode: str) -> io.NodeOutput:
+        if not caption or not caption.strip():
+            raise ValueError("Caption is empty.")
+
+        stripped = caption.strip()
+        looks_json = stripped.startswith(("{", "[")) and stripped.endswith(("}", "]"))
+        effective_mode = mode
+        if mode == "auto":
+            effective_mode = "json" if looks_json else "plain text"
+
+        if effective_mode == "json":
+            try:
+                obj = json.loads(caption)
+            except json.JSONDecodeError as e:
+                raise ValueError(
+                    f"Input looks like JSON but couldn't be parsed: {e}. "
+                    f"Switch mode to 'plain text' or fix the JSON."
+                ) from e
+            if not isinstance(obj, (dict, list)):
+                raise ValueError(
+                    f"Expected a JSON object or array, got {type(obj).__name__}. "
+                    f"Switch mode to 'plain text'."
+                )
+            if isinstance(obj, dict):
+                merged = merge_into_json_caption(obj)
+            else:
+                # list of captions -- merge into each dict element
+                merged = [merge_into_json_caption(x) if isinstance(x, dict) else x for x in obj]
+            out = json.dumps(merged, ensure_ascii=False, separators=(",", ":"))
+            log = f"artifact-suppression merged into JSON ({'array of ' + str(len(merged)) if isinstance(merged, list) else 'object'})"
+        else:
+            out = plain_prompt_with_negatives(caption)
+            log = "artifact-suppression appended to plain text"
+
+        return io.NodeOutput(out, ui=ui.PreviewText(log))
+
+
 class IdeogramExtension(ComfyExtension):
-    """Registers the Ideogram magic-prompt node with ComfyUI."""
+    """Registers the Ideogram magic-prompt nodes with ComfyUI."""
 
     async def get_node_list(self) -> list[type[io.ComfyNode]]:
-        return [IdeogramMagicPrompt]
+        return [IdeogramMagicPrompt, IdeogramSuppressArtifacts]
 
 
 async def comfy_entrypoint() -> IdeogramExtension:  # noqa: D401
