@@ -66,6 +66,7 @@ standard library plus the `comfy_api` module shipped with ComfyUI.
 | `prompt` | multiline string | The plain-text prompt to expand. |
 | `api_key` | string (password) | Your `IDEOGRAM_API_KEY` from [ideogram.ai/api/learn/](https://ideogram.ai/api/learn/). |
 | `aspect_ratio` | combo | One of the 18 ratios accepted by Ideogram's magic-prompt API, plus `AUTO`. Pick the closest match to your target image. |
+| `suppress_artifacts` | bool (default `True`) | If on, appends the positive-constraint snippet ("no noise, no grain, no blur, no jpeg...") to the generated caption. See the "Artifact suppression" section below. |
 
 ### Supported aspect ratios
 
@@ -86,23 +87,34 @@ The output caption is cleaned of `aspect_ratio` echoes and any
 `bbox` fields, so it's a clean drop-in for
 `Ideogram4Pipeline.__call__(prompt=...)` or any equivalent.
 
-## Usage
+## Artifact suppression (closest to a "negative prompt")
 
-```
-plain prompt ─┐
-               ├──▶ Ideogram Magic Prompt ──▶ json_caption ──▶ [your Ideogram4 generator]
-IDEOGRAM_API_KEY ┘                                  ▲
-                                                      │
-                                          live JSON preview
-```
+Ideogram 4's caption schema has **no dedicated `negative_prompts` field**
+(unlike SD/A1111). Instead, the model suppresses noise / blur / artifacts
+when the **positive** constraint is stated explicitly:
 
-In a typical workflow you would:
-1. Add the **Ideogram Magic Prompt** node.
-2. Plug in a free-form text prompt and your API key.
-3. Connect the `json_caption` output to your Ideogram 4 generation node
-   (e.g. `Ideogram4Pipeline.__call__` from a custom node, or paste the
-   JSON into the standalone `gradio_app.py` UI as
-   `--prompt (Get-Content .\caption.json)`).
+- Instead of *"no noise"* → *"clean signal, no grain"*
+- Instead of *"no blur"* → *"sharp focus, no motion blur"*
+- Instead of *"no jpeg"* → *"high fidelity, no compression artifacts"*
+- Instead of *"no chromatic"* → *"no chromatic aberration, accurate color"*
+
+The `suppress_artifacts` checkbox (or the standalone
+**`Ideogram Suppress Artifacts`** node) injects a pre-baked snippet that
+covers the common artifact categories Ideogram 4 can produce.
+
+## Second node: `Ideogram Suppress Artifacts`
+
+A standalone post-processing node that bolts the same artifact-suppression
+snippet onto **any** text or JSON caption. Useful when you already have
+a hand-written or LLM-generated caption and don't want to re-run the
+magic-prompt API.
+
+| Input | Type | Description |
+| --- | --- | --- |
+| `caption` | multiline string | Either a stringified JSON caption or a plain prompt. |
+| `mode` | combo (`auto` / `json` / `plain text`) | `auto` parses the input as JSON if it looks like JSON, else plain text. |
+
+Output: `caption` (string, with the snippet applied).
 
 ## Compatibility
 
