@@ -22,7 +22,7 @@ try:
 except ImportError:  # older ComfyUI / V1 fallback
     from comfy_api.v0_0_2 import ComfyExtension, io, ui  # type: ignore[no-redef]
 
-from negative_prompt import (
+from .negative_prompt import (
     NEGATIVE_PLAIN,
     merge_into_json_caption,
     plain_prompt_with_negatives,
