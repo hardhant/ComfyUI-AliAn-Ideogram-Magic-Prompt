@@ -1,8 +1,0 @@
-# ComfyUI Manager reads this for install hints.
-# The node itself uses only the Python standard library (urllib) -- no
-# third-party packages are required at runtime.
-#
-# If you want a developer install (`pip install -e .`), the build system is
-# declared in pyproject.toml.
-
-comfy_api>=0.3.0
