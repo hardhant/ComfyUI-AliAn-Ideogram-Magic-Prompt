@@ -113,7 +113,6 @@ class IdeogramMagicPrompt(io.ComfyNode):
                 io.String.Output(
                     "json_caption",
                     tooltip="Stringified JSON caption -- feed to Ideogram4 generate.",
-                    tool="JsonPreview",
                 ),
             ],
         )
